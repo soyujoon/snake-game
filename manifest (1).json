@@ -1,0 +1,13 @@
+{
+  "background_color": "#17522d",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "텃밭 스네이크",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "스네이크",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "description": "과일을 모아 텃밭을 채워보세요",
+  "lang": "ko"
+}
