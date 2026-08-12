@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>텃밭 스네이크</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --soil-0:#0c1710;
+    --soil-1:#152420;
+    --soil-2:#1e332a;
+    --leaf-lo:#7fb84a;
+    --leaf-hi:#c6f135;
+    --cream:#eef2e2;
+    --cream-dim:#a9b8a3;
+    --berry:#e85d4e;
+    --grape:#a06bf0;
+    --gold:#f0c14b;
+    --radius:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; width:100%; overflow-x:hidden;}
+  body{
+    margin:0;
+    background: radial-gradient(120% 120% at 50% -10%, #1c3327 0%, var(--soil-0) 55%);
+    color:var(--cream);
+    font-family:'Manrope', sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:12px;
+    box-sizing:border-box;
+  }
+  .display{ font-family:'Press Start 2P', monospace; letter-spacing:0.5px; }
+
+  #app{
+    position:relative;
+    width:100%;
+    max-width:420px;
+    margin:0 auto;
+    border-radius:28px;
+    overflow:hidden;
+    background: linear-gradient(180deg, var(--soil-1), var(--soil-0));
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(198,241,53,0.06), inset 0 0 40px rgba(0,0,0,0.3);
+  }
+
+  /* ---------- 공통 화면 ---------- */
+  .screen{ display:none; padding:22px 20px 26px; position:relative; min-height:560px; flex-direction:column; }
+  .screen.active{ display:flex; }
+
+  /* ---------- 메인 메뉴 ---------- */
+  #screen-menu{ align-items:center; justify-content:space-between; text-align:center; position:relative; overflow:hidden; }
+  .brand{ margin-top:18px; position:relative; z-index:2; }
+  .brand .glyph{
+    width:76px; height:44px; margin:0 auto 18px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .glyph-snake{
+    position:relative; width:74px; height:44px;
+    animation: glowPulse 2.6s ease-in-out infinite;
+  }
+  @keyframes glowPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
+  .glyph-snake .dot{
+    position:absolute; border-radius:32%;
+    background: linear-gradient(160deg, var(--leaf-hi), var(--leaf-lo));
+    box-shadow: 0 0 10px rgba(139,224,58,0.6), 0 0 2px rgba(255,255,255,0.5) inset;
+  }
+  .glyph-snake .dot.head{
+    border-radius:42%; display:flex; align-items:center; justify-content:center; gap:4px;
+    box-shadow: 0 0 14px rgba(198,241,53,0.8), 0 0 2px rgba(255,255,255,0.5) inset;
+  }
+  .glyph-snake .eye{ width:4px; height:4px; border-radius:50%; background:#0c1710; }
+
+  .menu-sparkle{ position:absolute; inset:0; pointer-events:none; z-index:1; }
+  .spark{
+    position:absolute; width:3px; height:3px; border-radius:50%;
+    background:rgba(255,255,255,0.55); box-shadow:0 0 4px rgba(255,255,255,0.4);
+    animation: twinkle 3.2s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{ opacity:0.15; } 50%{ opacity:0.85; } }
+
+  h1.title{
+    font-size:15px; line-height:1.9; color:var(--leaf-hi);
+    text-shadow:0 0 18px rgba(198,241,53,0.35);
+    margin:0 0 4px; position:relative; z-index:2;
+  }
+  .subtitle{ font-size:11px; color:var(--cream-dim); margin:0 0 20px; letter-spacing:0.5px; position:relative; z-index:2;}
+
+  .coin-badge{
+    position:absolute; top:16px; right:16px; z-index:3;
+    display:flex; align-items:center; gap:6px;
+    background:rgba(240,193,75,0.14); border:1px solid rgba(240,193,75,0.35);
+    color:var(--gold); font-weight:800; font-size:13px;
+    padding:7px 12px; border-radius:20px;
+  }
+  .coin-ico{ font-size:14px; }
+
+  .menu-mid{ flex:1; display:flex; align-items:center; justify-content:center; width:100%; position:relative; z-index:2; }
+  .btn-start{
+    font-family:'Press Start 2P', monospace;
+    font-size:14px;
+    color:#0e1a10;
+    background: linear-gradient(180deg, #a8ec52, #7cc93a);
+    border:none; border-radius:44px;
+    padding:22px 58px;
+    cursor:pointer;
+    box-shadow: 0 0 34px rgba(139,224,58,0.5), 0 10px 24px rgba(0,0,0,0.4);
+    transition: transform .08s ease;
+  }
+  .btn-start:active{ transform:scale(0.96); }
+
+  .menu-bottom{ display:flex; gap:10px; width:100%; position:relative; z-index:2; }
+  .pill-btn{
+    flex:1; background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07);
+    color:var(--cream); border-radius:20px; padding:16px 6px;
+    font-size:10.5px; font-family:'Manrope',sans-serif; font-weight:700;
+    cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .pill-btn .ico{ font-size:21px; }
+  .pill-btn:active{ background:rgba(255,255,255,0.09); }
+
+  /* ---------- 인게임 ---------- */
+  #screen-game{ padding:0; align-items:center; background:#1a3a24; }
+  .hud-top{
+    width:100%; display:flex; align-items:center; gap:8px;
+    padding:12px 14px; background:#173420;
+  }
+  .hud-chip{
+    display:flex; align-items:center; gap:6px;
+    font-family:'Press Start 2P'; font-size:12px; color:var(--cream);
+  }
+  .hud-dot{ width:14px; height:14px; border-radius:50%; background:#e6483a; box-shadow:inset -2px -2px 0 rgba(0,0,0,0.2), inset 2px 2px 0 rgba(255,255,255,0.25); display:inline-block; }
+  .hud-trophy{ font-size:14px; }
+  .hud-spacer{ flex:1; }
+  .hud-icon{
+    width:30px; height:30px; border-radius:8px; border:none;
+    background:transparent; color:var(--cream); font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; opacity:0.9;
+  }
+  .hud-icon:active{ background:rgba(255,255,255,0.12); }
+  .icon-pause{ display:flex; gap:3px; }
+  .icon-pause i{ width:3px; height:12px; background:currentColor; border-radius:1px; display:block; }
+  .icon-play{ display:block; width:0; height:0;
+    border-top:6px solid transparent; border-bottom:6px solid transparent;
+    border-left:10px solid currentColor; margin-left:2px;
+  }
+  .canvas-wrap{
+    position:relative; width:100%; padding:10px;
+  }
+  #board{
+    display:block; border-radius:10px;
+    background:
+      repeating-conic-gradient(#8bd44c 0% 25%, #7dc943 0% 50%) 0 0 / 48px 48px;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,0.15);
+    width:100%; height:auto; aspect-ratio: 384 / 624;
+  }
+  .combo-toast{
+    position:absolute; top:96px; left:50%; transform:translateX(-50%);
+    font-family:'Press Start 2P'; font-size:10px; color:var(--gold);
+    opacity:0; pointer-events:none; text-shadow:0 0 10px rgba(240,193,75,0.6);
+    transition: opacity .2s ease, transform .5s ease;
+  }
+  .combo-toast.show{ opacity:1; transform:translateX(-50%) translateY(-16px); }
+
+  .touch-pad{ margin-top:16px; display:none; grid-template-columns:repeat(3,52px); grid-template-rows:repeat(3,52px); gap:6px; }
+  .touch-pad.visible{ display:grid; }
+  .tp-btn{ background:var(--soil-2); border:1px solid rgba(198,241,53,0.12); border-radius:12px; color:var(--leaf-hi); font-size:18px; }
+  .tp-up{grid-column:2; grid-row:1;} .tp-left{grid-column:1; grid-row:2;} .tp-down{grid-column:2; grid-row:3;} .tp-right{grid-column:3; grid-row:2;}
+
+  /* ---------- 오버레이 / 모달 ---------- */
+  .overlay{
+    position:absolute; inset:0; background:rgba(6,12,8,0.78); backdrop-filter: blur(2px);
+    display:none; align-items:center; justify-content:center; padding:24px; z-index:20;
+  }
+  .overlay.active{ display:flex; }
+  .card{
+    width:100%; background:linear-gradient(180deg,var(--soil-2),var(--soil-1));
+    border-radius:20px; padding:26px 22px; text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(198,241,53,0.1);
+  }
+  .go-tag{ font-family:'Press Start 2P'; font-size:11px; color:var(--berry); margin-bottom:14px; letter-spacing:1px;}
+  .go-score{ font-family:'Press Start 2P'; font-size:30px; color:var(--leaf-hi); margin:6px 0 4px; }
+  .go-sub{ font-size:11px; color:var(--cream-dim); margin-bottom:6px; }
+  .best-badge{
+    display:inline-block; margin:10px 0 18px; padding:6px 14px; border-radius:20px;
+    background:rgba(240,193,75,0.12); color:var(--gold); font-size:10.5px; font-weight:800;
+    border:1px solid rgba(240,193,75,0.3);
+  }
+  .go-actions{ display:flex; flex-direction:column; gap:10px; margin-top:6px;}
+  .go-btn{
+    padding:14px; border-radius:14px; border:none; cursor:pointer;
+    font-family:'Manrope'; font-weight:800; font-size:13px;
+  }
+  .go-btn.primary{ background:linear-gradient(180deg,var(--leaf-hi),var(--leaf-lo)); color:var(--soil-0); box-shadow:0 6px 0 #4f7e2a;}
+  .go-btn.primary:active{ transform:translateY(4px); box-shadow:0 2px 0 #4f7e2a; }
+  .go-btn.secondary{ background:transparent; color:var(--cream); border:1px solid rgba(238,242,226,0.25); }
+  .go-btn.ghost{ background:transparent; color:var(--cream-dim); border:none; font-weight:600; text-decoration:underline; }
+
+  /* settings / achievements */
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .modal-title{ font-family:'Press Start 2P'; font-size:12px; color:var(--leaf-hi); }
+  .close-x{ background:none; border:none; color:var(--cream-dim); font-size:18px; cursor:pointer; }
+  .setting-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid rgba(238,242,226,0.08); text-align:left; }
+  .setting-row:last-child{ border-bottom:none; }
+  .setting-label{ font-size:12.5px; font-weight:700; }
+  .seg-toggle{ display:flex; background:var(--soil-0); border-radius:10px; padding:3px; gap:3px; }
+  .seg-toggle button{ border:none; background:transparent; color:var(--cream-dim); font-size:10.5px; font-weight:700; padding:7px 10px; border-radius:8px; cursor:pointer; }
+  .seg-toggle button.active{ background:var(--leaf-lo); color:var(--soil-0); }
+  input[type=range]{ width:120px; accent-color:var(--leaf-hi); }
+
+  .ach-list{ display:flex; flex-direction:column; gap:10px; text-align:left; max-height:340px; overflow:auto; }
+  .ach-item{ display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px; background:var(--soil-0); border:1px solid rgba(238,242,226,0.06); }
+  .ach-item.locked{ opacity:0.45; }
+  .ach-ico{ width:34px; height:34px; border-radius:10px; background:var(--soil-2); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .ach-name{ font-size:12px; font-weight:800; }
+  .ach-desc{ font-size:10.5px; color:var(--cream-dim); margin-top:2px; }
+
+  .skin-coin-row{
+    display:flex; align-items:center; gap:6px; justify-content:center;
+    margin-bottom:14px; color:var(--gold); font-weight:800; font-size:14px;
+  }
+  .skin-list{ display:flex; flex-direction:column; gap:12px; text-align:left; max-height:400px; overflow:auto; }
+  .skin-item{ display:flex; gap:12px; align-items:center; padding:12px; border-radius:14px; background:var(--soil-0); border:1px solid rgba(238,242,226,0.06); }
+  .skin-item.equipped{ border-color:rgba(198,241,53,0.5); box-shadow:0 0 0 1px rgba(198,241,53,0.25) inset; }
+  .skin-swatch{
+    width:96px; height:48px; flex-shrink:0; display:block;
+  }
+  .skin-info{ flex:1; min-width:0; }
+  .skin-name{ font-size:12.5px; font-weight:800; }
+  .skin-price{ font-size:10.5px; color:var(--cream-dim); margin-top:2px; }
+  .skin-btn{
+    flex-shrink:0; padding:9px 14px; border-radius:10px; border:none;
+    font-size:11px; font-weight:800; cursor:pointer; font-family:'Manrope';
+  }
+  .skin-btn.buy{ background:linear-gradient(180deg,var(--gold),#c99a2e); color:var(--soil-0); }
+  .skin-btn.equip{ background:var(--soil-2); color:var(--cream); border:1px solid rgba(238,242,226,0.2); }
+  .skin-btn.equipped{ background:rgba(198,241,53,0.15); color:var(--leaf-hi); border:1px solid rgba(198,241,53,0.35); }
+  .skin-btn:disabled{ opacity:0.5; cursor:default; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--soil-2); color:var(--cream); font-size:11.5px; font-weight:700;
+    padding:10px 16px; border-radius:12px; opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:50; border:1px solid rgba(198,241,53,0.2);
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= 메인 화면 ================= -->
+  <section id="screen-menu" class="screen active">
+    <div class="coin-badge"><span class="coin-ico">🪙</span><span id="menu-coin">0</span></div>
+    <div class="brand">
+      <div class="glyph">
+        <div class="glyph-snake">
+          <span class="dot" style="width:13px;height:13px; left:0; top:31px;"></span>
+          <span class="dot" style="width:17px;height:17px; left:13px; top:19px;"></span>
+          <span class="dot" style="width:21px;height:21px; left:29px; top:8px;"></span>
+          <span class="dot head" style="width:26px;height:26px; left:48px; top:0;">
+            <span class="eye"></span><span class="eye"></span>
+          </span>
+        </div>
+      </div>
+      <h1 class="title">텃밭<br>스네이크</h1>
+      <p class="subtitle">과일을 모아 텃밭을 채워보세요</p>
+    </div>
+
+    <div class="menu-sparkle">
+      <span class="spark" style="left:8%; top:14%; animation-delay:0s;"></span>
+      <span class="spark" style="left:82%; top:20%; animation-delay:.6s;"></span>
+      <span class="spark" style="left:20%; top:48%; animation-delay:1.2s;"></span>
+      <span class="spark" style="left:88%; top:52%; animation-delay:.3s;"></span>
+      <span class="spark" style="left:12%; top:70%; animation-delay:.9s;"></span>
+      <span class="spark" style="left:70%; top:8%; animation-delay:1.5s;"></span>
+    </div>
+
+    <div class="menu-mid">
+      <button class="btn-start" id="btn-play">게임 시작</button>
+    </div>
+
+    <div class="menu-bottom">
+      <button class="pill-btn" id="btn-best"><span class="ico">🏆</span>최고 점수</button>
+      <button class="pill-btn" id="btn-ach"><span class="ico">🎖️</span>업적</button>
+      <button class="pill-btn" id="btn-skins"><span class="ico">🐍</span>스킨</button>
+      <button class="pill-btn" id="btn-settings"><span class="ico">⚙️</span>설정</button>
+    </div>
+  </section>
+
+  <!-- ================= 인게임 ================= -->
+  <section id="screen-game" class="screen">
+    <div class="hud-top">
+      <div class="hud-chip"><span class="hud-dot"></span><span id="hud-score">0</span></div>
+      <div class="hud-chip"><span class="hud-trophy">🏆</span><span id="hud-best">0</span></div>
+      <div class="hud-spacer"></div>
+      <div class="hud-chip"><span class="coin-ico">🪙</span><span id="hud-coin">0</span></div>
+      <button class="hud-icon" id="btn-pause" title="일시정지" aria-label="일시정지"><span class="icon-pause"><i></i><i></i></span></button>
+      <button class="hud-icon" id="btn-mute" title="음소거" aria-label="음소거">🔊</button>
+      <button class="hud-icon" id="btn-exit" title="메인 메뉴로" aria-label="메인 메뉴로">✕</button>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="board" width="384" height="624"></canvas>
+      <div class="combo-toast" id="combo-toast">+30 보너스!</div>
+    </div>
+
+    <div class="touch-pad" id="touch-pad">
+      <button class="tp-btn tp-up" data-dir="up">▲</button>
+      <button class="tp-btn tp-left" data-dir="left">◀</button>
+      <button class="tp-btn tp-down" data-dir="down">▼</button>
+      <button class="tp-btn tp-right" data-dir="right">▶</button>
+    </div>
+  </section>
+
+  <!-- ================= 일시정지 오버레이 ================= -->
+  <div class="overlay" id="overlay-pause">
+    <div class="card">
+      <div class="go-tag">일시정지</div>
+      <div class="go-actions">
+        <button class="go-btn primary" id="btn-resume">계속하기</button>
+        <button class="go-btn secondary" id="btn-pause-menu">메인 메뉴로</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 게임오버 팝업 ================= -->
+  <div class="overlay" id="overlay-gameover">
+    <div class="card">
+      <div class="go-tag" id="go-tag">GAME OVER</div>
+      <div class="go-score" id="go-score">0</div>
+      <div class="go-sub">획득 점수</div>
+      <div id="go-best-badge"></div>
+      <div id="go-coin-badge"></div>
+      <div class="go-actions">
+        <button class="go-btn primary" id="btn-retry">다시하기</button>
+        <button class="go-btn secondary" id="btn-tomenu">메인 메뉴로</button>
+        <button class="go-btn ghost" id="btn-share">점수 공유</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 설정 모달 ================= -->
+  <div class="overlay" id="overlay-settings">
+    <div class="card">
+      <div class="modal-head">
+        <span class="modal-title">설정</span>
+        <button class="close-x" data-close="overlay-settings">✕</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">조작 방식</span>
+        <div class="seg-toggle" id="toggle-control">
+          <button data-val="swipe" class="active">스와이프</button>
+          <button data-val="buttons">방향 버튼</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">효과음 음량</span>
+        <input type="range" id="range-volume" min="0" max="100" value="60">
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 업적 모달 ================= -->
+  <div class="overlay" id="overlay-ach">
+    <div class="card">
+      <div class="modal-head">
+        <span class="modal-title">업적</span>
+        <button class="close-x" data-close="overlay-ach">✕</button>
+      </div>
+      <div class="ach-list" id="ach-list"></div>
+    </div>
+  </div>
+
+  <!-- ================= 스킨 모달 ================= -->
+  <div class="overlay" id="overlay-skins">
+    <div class="card">
+      <div class="modal-head">
+        <span class="modal-title">스킨</span>
+        <button class="close-x" data-close="overlay-skins">✕</button>
+      </div>
+      <div class="skin-coin-row"><span class="coin-ico">🪙</span><span id="skin-coin-count">0</span></div>
+      <div class="skin-list" id="skin-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // ============ 시스템 설정 ============
+  const GRID_W = 8, GRID_H = 13, TILE = 48;
+  const BOARD_W = GRID_W * TILE, BOARD_H = GRID_H * TILE;
+  const TICK_BASE = 200, TICK_MIN = 50, TICK_STEP = 5;
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = BOARD_W * DPR;
+  canvas.height = BOARD_H * DPR;
+  ctx.scale(DPR, DPR);
+
+  // ============ 상태 ============
+  let snake, dir, pendingDir, fruit, bonus, bonusTimer;
+  let prevSnake = [];
+  let bulges = []; // 삼킴(swallow) 모션 - 먹은 먹이가 목을 타고 내려가는 효과
+  let score = 0, best = 0, tickMs = TICK_BASE, fruitsEaten = 0, normalStreak = 0;
+  let loopHandle = null, lastTick = 0, gameState = 'menu'; // menu | playing | paused | gameover
+  let controlMode = 'swipe', volume = 60, prevVolume = 60;
+  let coins = 0;
+
+  const ACHIEVEMENTS = [
+    { id:'first_bite', name:'첫 수확', desc:'과일을 처음 먹었어요', ico:'🍓', check: s => s.fruitsEaten >= 1 },
+    { id:'score_100', name:'백점 농부', desc:'한 판에서 100점 달성', ico:'💯', check: s => s.score >= 100 },
+    { id:'score_300', name:'텃밭 마스터', desc:'한 판에서 300점 달성', ico:'👑', check: s => s.score >= 300 },
+    { id:'long_body', name:'긴 몸통', desc:'몸길이 20칸 달성', ico:'🐍', check: s => s.length >= 20 },
+    { id:'bonus_lover', name:'보너스 헌터', desc:'보너스 과일 첫 획득', ico:'🍇', check: s => s.bonusEaten >= 1 },
+    { id:'speed_demon', name:'스피드 러너', desc:'최고 속도(50ms) 도달', ico:'⚡', check: s => s.tickMs <= TICK_MIN },
+  ];
+  let unlocked = new Set();
+  let bonusEatenTotal = 0;
+
+  const SKINS = [
+    { id:'default', name:'기본 뱀', price:0,
+      body:'#4f93e6', shadow:'#2f5fa0', head:'#5da2f2', headShadow:'#2f5fa0',
+      pupil:'#22364d', outline:null, highlight:null, edgeColor:null },
+    { id:'boa', name:'구렁이', price:50,
+      body:'#a9873f', shadow:'#7a6328', head:'#c2a25a', headShadow:'#7a6328',
+      pupil:'#1c1710', outline:null, highlight:'#ecdcab', edgeColor:'#241c10', edgeWidth:5 },
+    { id:'volt', name:'전기 뱀', price:100,
+      body:'#101c24', shadow:'#050b0e', head:'#16262f', headShadow:'#050b0e',
+      pupil:'#eafffb', outline:'#39f2d8', highlight:null, edgeColor:null },
+    { id:'chrome', name:'크롬', price:20,
+      body:'#c9ced3', shadow:'#71767c', head:'#eef2f4', headShadow:'#71767c',
+      pupil:'#15181a', outline:'#39f2d8', highlight:'#ffffff', edgeColor:null },
+    { id:'darkworm', name:'다크 웜', price:20,
+      body:'#3a3f46', shadow:'#22262b', head:'#4a5058', headShadow:'#22262b',
+      pupil:'#ffffff', mouthColor:'#15181b', outline:null, highlight:null,
+      edgeColor:'#15181b', edgeWidth:4, segmented:true },
+  ];
+  let ownedSkins = new Set(['default']);
+  let currentSkin = 'default';
+  function getSkin(){ return SKINS.find(s=>s.id===currentSkin) || SKINS[0]; }
+
+  // ============ 저장소 ============
+  async function loadStorage(){
+    try{
+      const b = await window.storage.get('best-score', false);
+      if(b) best = parseInt(b.value) || 0;
+    }catch(e){ best = 0; }
+    try{
+      const c = await window.storage.get('coins', false);
+      if(c) coins = parseInt(c.value) || 0;
+    }catch(e){ coins = 0; }
+    try{
+      const a = await window.storage.get('achievements', false);
+      if(a) unlocked = new Set(JSON.parse(a.value));
+    }catch(e){ unlocked = new Set(); }
+    try{
+      const s = await window.storage.get('settings', false);
+      if(s){ const parsed = JSON.parse(s.value); controlMode = parsed.controlMode || 'swipe'; volume = parsed.volume ?? 60; }
+    }catch(e){}
+    try{
+      const sk = await window.storage.get('skins', false);
+      if(sk){
+        const parsed = JSON.parse(sk.value);
+        ownedSkins = new Set(parsed.owned || ['default']);
+        currentSkin = parsed.current || 'default';
+        ownedSkins.add('default');
+      }
+    }catch(e){}
+    document.getElementById('hud-best').textContent = best;
+    updateCoinUI();
+    applyControlModeUI();
+    document.getElementById('range-volume').value = volume;
+  }
+  async function saveBest(){
+    try{ await window.storage.set('best-score', String(best), false); }catch(e){}
+  }
+  async function saveCoins(){
+    try{ await window.storage.set('coins', String(coins), false); }catch(e){}
+  }
+  async function saveSkins(){
+    try{ await window.storage.set('skins', JSON.stringify({owned:[...ownedSkins], current:currentSkin}), false); }catch(e){}
+  }
+  function updateCoinUI(){
+    document.getElementById('menu-coin').textContent = coins;
+    const hc = document.getElementById('hud-coin');
+    if(hc) hc.textContent = coins;
+    const sc = document.getElementById('skin-coin-count');
+    if(sc) sc.textContent = coins;
+  }
+  function addCoins(n){
+    coins += n;
+    updateCoinUI();
+    saveCoins();
+  }
+  async function saveSettings(){
+    try{ await window.storage.set('settings', JSON.stringify({controlMode, volume}), false); }catch(e){}
+  }
+  async function saveAchievements(){
+    try{ await window.storage.set('achievements', JSON.stringify([...unlocked]), false); }catch(e){}
+  }
+
+  // ============ 사운드 (간단 비프) ============
+  let actx = null;
+  function beep(freq, dur){
+    if(volume <= 0) return;
+    try{
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(); const g = actx.createGain();
+      o.frequency.value = freq; o.type = 'square';
+      g.gain.value = (volume/100) * 0.08;
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + dur);
+    }catch(e){}
+  }
+  // 방향 전환 "띠딩" 소리
+  function playDing(){
+    if(volume <= 0) return;
+    try{
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(); const g = actx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(1046, actx.currentTime);
+      o.frequency.setValueAtTime(1568, actx.currentTime + 0.055);
+      g.gain.setValueAtTime((volume/100) * 0.07, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.12);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + 0.12);
+    }catch(e){}
+  }
+  // 사과 먹는 "아삭" 소리 (필터링된 노이즈 버스트)
+  function playCrunch(){
+    if(volume <= 0) return;
+    try{
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const now = actx.currentTime;
+      const master = actx.createGain();
+      master.gain.value = volume/100;
+      master.connect(actx.destination);
+
+      // 저음 "무는" 임팩트
+      const thumpDur = 0.05;
+      const thumpBuf = actx.createBuffer(1, Math.floor(actx.sampleRate*thumpDur), actx.sampleRate);
+      const td = thumpBuf.getChannelData(0);
+      for(let i=0;i<td.length;i++) td[i] = (Math.random()*2 - 1) * Math.pow(1 - i/td.length, 3);
+      const thumpSrc = actx.createBufferSource(); thumpSrc.buffer = thumpBuf;
+      const thumpFilter = actx.createBiquadFilter();
+      thumpFilter.type = 'lowpass'; thumpFilter.frequency.value = 500;
+      const thumpGain = actx.createGain(); thumpGain.gain.value = 0.45;
+      thumpSrc.connect(thumpFilter); thumpFilter.connect(thumpGain); thumpGain.connect(master);
+      thumpSrc.start(now);
+
+      // 여러 개의 짧고 거친 "아삭" 파편음을 겹쳐서 씹는 질감 표현
+      const crackleCount = 5 + Math.floor(Math.random()*3);
+      for(let k=0;k<crackleCount;k++){
+        const dur = 0.018 + Math.random()*0.02;
+        const bufferSize = Math.max(1, Math.floor(actx.sampleRate*dur));
+        const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i=0;i<bufferSize;i++){
+          data[i] = (Math.random()*2 - 1) * Math.pow(1 - i/bufferSize, 1.1);
+        }
+        const src = actx.createBufferSource(); src.buffer = buffer;
+        const filter = actx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800 + Math.random()*2600;
+        filter.Q.value = 1.3;
+        const g = actx.createGain();
+        g.gain.value = 0.4 * (1 - (k/crackleCount)*0.35);
+        src.connect(filter); filter.connect(g); g.connect(master);
+        src.start(now + k*(0.016 + Math.random()*0.014));
+      }
+    }catch(e){}
+  }
+
+  // ============ 유틸 ============
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._h);
+    toast._h = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function openOverlay(id){ document.getElementById(id).classList.add('active'); }
+  function closeOverlay(id){ document.getElementById(id).classList.remove('active'); }
+
+  // ============ 게임 초기화 ============
+  function resetGame(){
+    const cx = Math.floor(GRID_W/2), cy = Math.floor(GRID_H/2);
+    snake = [ {x:cx,y:cy}, {x:cx-1,y:cy}, {x:cx-2,y:cy} ];
+    prevSnake = snake.map(s => ({x:s.x, y:s.y}));
+    dir = 'right'; pendingDir = null;
+    score = 0; tickMs = TICK_BASE; fruitsEaten = 0; normalStreak = 0;
+    bonus = null; bonusEatenTotal = 0;
+    bulges = [];
+    clearTimeout(bonusTimer);
+    fruit = spawnFruit();
+    document.getElementById('hud-score').textContent = '0';
+  }
+
+  function emptyCells(exclude){
+    const occupied = new Set(snake.map(s=>s.x+','+s.y));
+    if(exclude) occupied.add(exclude.x+','+exclude.y);
+    const cells = [];
+    for(let x=0;x<GRID_W;x++) for(let y=0;y<GRID_H;y++){
+      const k = x+','+y;
+      if(!occupied.has(k)) cells.push({x,y});
+    }
+    return cells;
+  }
+  function spawnFruit(){
+    const cells = emptyCells(bonus);
+    if(cells.length === 0) return null;
+    return cells[Math.floor(Math.random()*cells.length)];
+  }
+  function maybeSpawnBonus(){
+    const cells = emptyCells(fruit);
+    if(cells.length === 0) return;
+    bonus = cells[Math.floor(Math.random()*cells.length)];
+    clearTimeout(bonusTimer);
+    bonusTimer = setTimeout(()=>{ bonus = null; }, 5000);
+  }
+
+  const OPPOSITE = { up:'down', down:'up', left:'right', right:'left' };
+  function queueDirection(d){
+    if(gameState === 'ready'){ beginPlaying(); }
+    if(gameState !== 'playing') return;
+    if(d === OPPOSITE[dir]) return; // 역방향 방지
+    if(d !== dir) playDing(); // 방향 전환 효과음
+    pendingDir = d; // 1틱당 1회만 반영
+  }
+  function beginPlaying(){
+    if(gameState !== 'ready') return;
+    gameState = 'playing';
+    startLoop();
+  }
+
+  function checkAchievements(){
+    const s = { score, fruitsEaten, length: snake.length, bonusEaten: bonusEatenTotal, tickMs };
+    let newly = [];
+    ACHIEVEMENTS.forEach(a=>{
+      if(!unlocked.has(a.id) && a.check(s)){
+        unlocked.add(a.id); newly.push(a);
+      }
+    });
+    if(newly.length){
+      saveAchievements();
+      toast('🎖️ 업적 달성: ' + newly.map(a=>a.name).join(', '));
+    }
+  }
+
+  // ============ 틱 로직 ============
+  function step(){
+    prevSnake = snake.map(s => ({x:s.x, y:s.y}));
+    if(pendingDir){ dir = pendingDir; pendingDir = null; }
+    const head = snake[0];
+    let next = {x:head.x, y:head.y};
+    if(dir==='up') next.y -= 1;
+    else if(dir==='down') next.y += 1;
+    else if(dir==='left') next.x -= 1;
+    else if(dir==='right') next.x += 1;
+
+    // 벽 충돌
+    if(next.x < 0 || next.x >= GRID_W || next.y < 0 || next.y >= GRID_H){
+      return gameOver();
+    }
+    // 자기 몸 충돌 (꼬리는 이동하며 비워지므로 제외하지 않고 검사 - 몸통 전체 기준)
+    for(let i=1;i<snake.length;i++){
+      if(snake[i].x === next.x && snake[i].y === next.y) return gameOver();
+    }
+
+    snake.unshift(next);
+
+    let grow = false; // 일반 과일을 먹었을 때만 true (몸통 +1)
+    let boardCleared = false;
+    if(fruit && next.x === fruit.x && next.y === fruit.y){
+      score += 10; fruitsEaten += 1; normalStreak += 1; grow = true;
+      playCrunch();
+      spawnEatEffect(next.x, next.y, '#ffd23f');
+      spawnBulge();
+      addCoins(1);
+      fruit = spawnFruit();
+      if(!fruit) boardCleared = true; // 빈 칸이 없음 = 보드를 가득 채움(클리어)
+      if(fruitsEaten % 5 === 0){
+        tickMs = Math.max(TICK_MIN, tickMs - TICK_STEP);
+      }
+      if(normalStreak > 0 && normalStreak % 10 === 0){
+        maybeSpawnBonus();
+      }
+    } else if(bonus && next.x === bonus.x && next.y === bonus.y){
+      score += 30; bonusEatenTotal += 1; // 보너스는 길이 증가 없음
+      playCrunch();
+      spawnEatEffect(next.x, next.y, '#c9a2f7');
+      spawnBulge();
+      clearTimeout(bonusTimer);
+      bonus = null;
+      showCombo();
+    }
+
+    if(!grow){
+      snake.pop();
+    }
+
+    document.getElementById('hud-score').textContent = score;
+    if(score > best){ best = score; document.getElementById('hud-best').textContent = best; }
+    checkAchievements();
+    if(boardCleared) return clearGame();
+  }
+
+  function showCombo(){
+    const el = document.getElementById('combo-toast');
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'), 700);
+  }
+
+  function gameOver(){
+    stopLoop();
+    gameState = 'gameover';
+    beep(220, 0.25);
+    document.getElementById('go-tag').textContent = 'GAME OVER';
+    document.getElementById('go-score').textContent = score;
+    const badgeEl = document.getElementById('go-best-badge');
+    if(score >= best){
+      best = score; saveBest();
+      badgeEl.innerHTML = '<span class="best-badge">🏆 최고 점수 갱신!</span>';
+    } else {
+      badgeEl.innerHTML = '<span class="best-badge">BEST '+best+'</span>';
+    }
+    document.getElementById('go-coin-badge').innerHTML =
+      '<span class="best-badge">🪙 +'+fruitsEaten+' 획득</span>';
+    checkAchievements();
+    openOverlay('overlay-gameover');
+  }
+
+  function clearGame(){
+    stopLoop();
+    gameState = 'gameover';
+    beep(990, 0.3);
+    addCoins(30); // 클리어 보너스
+    document.getElementById('go-tag').textContent = '🎉 클리어!';
+    document.getElementById('go-score').textContent = score;
+    const badgeEl = document.getElementById('go-best-badge');
+    if(score >= best){
+      best = score; saveBest();
+      badgeEl.innerHTML = '<span class="best-badge">🏆 최고 점수 갱신!</span>';
+    } else {
+      badgeEl.innerHTML = '<span class="best-badge">BEST '+best+'</span>';
+    }
+    document.getElementById('go-coin-badge').innerHTML =
+      '<span class="best-badge">🪙 +'+(fruitsEaten+30)+' 획득 (클리어 보너스 +30)</span>';
+    checkAchievements();
+    openOverlay('overlay-gameover');
+  }
+
+  // ============ 렌더링 ============
+  const DIRV = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+  let effects = [];
+
+  function spawnEatEffect(gx, gy, color){
+    effects.push({ x:(gx+0.5)*TILE, y:(gy+0.5)*TILE, start: performance.now(), color });
+  }
+  function spawnBulge(){
+    const travel = Math.min(3, snake.length - 1);
+    bulges.push({ start: performance.now(), duration: Math.max(300, tickMs*3), travel });
+  }
+
+  let renderT = 1; // 현재 프레임의 틱 진행률(보간용)
+  function draw(now){
+    now = now || performance.now();
+    renderT = (gameState === 'playing' && tickMs > 0)
+      ? Math.min(1, Math.max(0, (now - lastTick) / tickMs))
+      : 1;
+    ctx.clearRect(0,0,BOARD_W,BOARD_H);
+    drawBackground();
+    if(fruit) drawApple(fruit.x, fruit.y, '#e6483a', false);
+    if(bonus) drawApple(bonus.x, bonus.y, '#9b5de5', true);
+    drawSnakeTube();
+    drawEffects(now);
+    if(gameState === 'ready') drawStartHint(now);
+  }
+
+  // 부드러운 이동을 위한 보간 위치 계산 (이전 칸 -> 현재 칸)
+  function getRenderPos(i){
+    const b = snake[i];
+    const a = prevSnake[i];
+    if(!a) return b;
+    const eased = renderT * (2 - renderT); // ease-out
+    return { x: a.x + (b.x - a.x) * eased, y: a.y + (b.y - a.y) * eased };
+  }
+  // 몸통 위의 임의 지점(소수 인덱스) 픽셀 좌표 - 삼킴 이펙트가 매끄럽게 지나가도록
+  function bodyPointAt(fracIndex){
+    const i0 = Math.max(0, Math.min(snake.length-1, Math.floor(fracIndex)));
+    const i1 = Math.min(snake.length-1, i0+1);
+    const p0 = getRenderPos(i0), p1 = getRenderPos(i1);
+    const t = fracIndex - i0;
+    const x = p0.x + (p1.x - p0.x) * t, y = p0.y + (p1.y - p0.y) * t;
+    return { x:(x+0.5)*TILE, y:(y+0.5)*TILE };
+  }
+  // 삼킴(swallow) 모션 - 먹이가 목을 타고 내려가듯 몸통이 잠깐 부풀었다 가라앉는 효과
+  function drawBulges(){
+    if(!bulges.length) return;
+    const skin = getSkin();
+    const now = performance.now();
+    bulges = bulges.filter(b => now - b.start < b.duration);
+    const baseR = TILE*0.5;
+    bulges.forEach(b=>{
+      const t = (now - b.start) / b.duration;
+      const pos = bodyPointAt(t * b.travel);
+      const bump = Math.sin(Math.PI * t); // 0 -> 1 -> 0
+      const r = baseR * (1 + 0.45*bump);
+      ctx.beginPath(); ctx.arc(pos.x, pos.y+3, r, 0, Math.PI*2);
+      ctx.fillStyle = skin.shadow; ctx.fill();
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI*2);
+      ctx.fillStyle = skin.head; ctx.fill();
+    });
+  }
+
+  function drawStartHint(now){
+    const pulse = 0.75 + 0.25*Math.sin(now/260);
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = 'rgba(12,23,16,0.55)';
+    roundRect(BOARD_W/2 - 100, BOARD_H*0.28 - 26, 200, 52, 16);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#eef2e2';
+    ctx.font = "bold 18px 'Manrope', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('탭하여 시작', BOARD_W/2, BOARD_H*0.28);
+    ctx.restore();
+  }
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // 배경 체커보드 + 칸 경계선
+  function drawBackground(){
+    const BLOCK = 1;
+    for(let x=0;x<GRID_W;x++){
+      for(let y=0;y<GRID_H;y++){
+        const bx = Math.floor(x/BLOCK), by = Math.floor(y/BLOCK);
+        ctx.fillStyle = (bx+by)%2===0 ? '#8ed850' : '#80cd46';
+        ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+      }
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    for(let x=0;x<=GRID_W;x++){
+      ctx.beginPath(); ctx.moveTo(x*TILE+0.5, 0); ctx.lineTo(x*TILE+0.5, BOARD_H); ctx.stroke();
+    }
+    for(let y=0;y<=GRID_H;y++){
+      ctx.beginPath(); ctx.moveTo(0, y*TILE+0.5); ctx.lineTo(BOARD_W, y*TILE+0.5); ctx.stroke();
+    }
+  }
+
+  // 사과 모양 과일
+  function drawApple(gx, gy, color, pulse){
+    const px=(gx+0.5)*TILE, py=(gy+0.5)*TILE;
+    let r = TILE*0.5;
+    if(pulse) r *= 1 + 0.08*Math.sin(Date.now()/110);
+    ctx.beginPath(); ctx.ellipse(px, py+r*0.75, r*0.75, r*0.22, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.beginPath(); ctx.arc(px-r*0.32, py-r*0.32, r*0.32, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(px, py-r); ctx.lineTo(px+3, py-r-12); ctx.stroke();
+    ctx.fillStyle = '#5bb04a';
+    ctx.beginPath(); ctx.ellipse(px+12, py-r-8, 11, 5.5, Math.PI/4, 0, Math.PI*2); ctx.fill();
+  }
+
+  // 뱀 몸통 (둥근 튜브 형태)
+  function strokeSnakePath(){
+    ctx.beginPath();
+    for(let i=0;i<snake.length;i++){
+      const p = getRenderPos(i);
+      const px=(p.x+0.5)*TILE, py=(p.y+0.5)*TILE;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  function drawSnakeTube(){
+    const skin = getSkin();
+    const w = TILE*1.0;
+    if(skin.outline){
+      ctx.save();
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.strokeStyle = skin.outline; ctx.lineWidth = w+7;
+      ctx.globalAlpha = 0.55;
+      strokeSnakePath();
+      ctx.restore();
+    }
+    if(skin.edgeColor){
+      ctx.save();
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.strokeStyle = skin.edgeColor; ctx.lineWidth = w + (skin.edgeWidth||5)*2;
+      strokeSnakePath();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    // 그림자(입체감)
+    ctx.translate(0,3);
+    ctx.strokeStyle = skin.shadow; ctx.lineWidth = w;
+    strokeSnakePath();
+    ctx.restore();
+    // 몸통
+    ctx.save();
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.strokeStyle = skin.body; ctx.lineWidth = w;
+    strokeSnakePath();
+    ctx.restore();
+    if(skin.highlight){
+      ctx.save();
+      ctx.translate(0, -w*0.22);
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.strokeStyle = skin.highlight; ctx.lineWidth = w*0.26;
+      ctx.globalAlpha = 0.8;
+      strokeSnakePath();
+      ctx.restore();
+    }
+    if(skin.segmented) drawSegmentDividers(skin, w);
+    drawBulges();
+    drawHead();
+  }
+  // 마디 구분선(세그먼트 스킨용) - 각 몸통 칸 경계에 짧은 선을 그림
+  function drawSegmentDividers(skin, w){
+    ctx.save();
+    ctx.strokeStyle = skin.edgeColor || '#15181b';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    for(let i=1;i<snake.length;i++){
+      const a = getRenderPos(Math.max(0,i-1));
+      const b = getRenderPos(Math.min(snake.length-1,i));
+      const cur = getRenderPos(i);
+      const ax=(a.x+0.5)*TILE, ay=(a.y+0.5)*TILE;
+      const bx=(b.x+0.5)*TILE, by=(b.y+0.5)*TILE;
+      const cx=(cur.x+0.5)*TILE, cy=(cur.y+0.5)*TILE;
+      let dx=bx-ax, dy=by-ay;
+      const len = Math.hypot(dx,dy) || 1;
+      dx/=len; dy/=len;
+      const px_=-dy, py_=dx;
+      const half = w*0.46;
+      ctx.beginPath();
+      ctx.moveTo(cx-px_*half, cy-py_*half);
+      ctx.lineTo(cx+px_*half, cy+py_*half);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawHead(){
+    const skin = getSkin();
+    const p = getRenderPos(0);
+    const px=(p.x+0.5)*TILE, py=(p.y+0.5)*TILE;
+    const r = TILE*0.525;
+    if(skin.outline){
+      ctx.beginPath(); ctx.arc(px, py, r+3.5, 0, Math.PI*2);
+      ctx.strokeStyle = skin.outline; ctx.lineWidth = 3; ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if(skin.edgeColor){
+      ctx.beginPath(); ctx.arc(px, py, r + (skin.edgeWidth||5), 0, Math.PI*2);
+      ctx.fillStyle = skin.edgeColor; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(px, py+3, r, 0, Math.PI*2); ctx.fillStyle=skin.headShadow; ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fillStyle=skin.head; ctx.fill();
+    drawFace(px, py);
+  }
+  // 성난 눈매(사선 눈꺼풀) - 참고 이미지 스타일. c는 캔버스 컨텍스트(미리보기에도 재사용)
+  function drawAngryEye(c, ex, ey, r, tilt, pupilColor, edgeColor){
+    c.save();
+    c.translate(ex, ey);
+    c.rotate(tilt);
+    c.beginPath();
+    c.moveTo(-r, r*0.15);
+    c.quadraticCurveTo(-r*0.5, r*0.95, r*0.75, r*0.55);
+    c.quadraticCurveTo(r*1.05, r*0.05, r*0.85, -r*0.35);
+    c.quadraticCurveTo(0, -r*0.55, -r, r*0.15);
+    c.closePath();
+    c.fillStyle = '#fff';
+    c.fill();
+    if(edgeColor){ c.lineWidth = r*0.16; c.strokeStyle = edgeColor; c.stroke(); }
+    c.beginPath();
+    c.arc(r*0.18, r*0.3, r*0.4, 0, Math.PI*2);
+    c.fillStyle = pupilColor;
+    c.fill();
+    c.restore();
+  }
+  function drawFace(px, py){
+    const skin = getSkin();
+    const f = DIRV[dir];
+    const angle = Math.atan2(f.y, f.x);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(angle);
+    const eyeDist = 13, eyeR = 9, fwd = 6;
+    drawAngryEye(ctx, fwd, -eyeDist, eyeR, -0.35, skin.pupil, skin.edgeColor);
+    drawAngryEye(ctx, fwd, eyeDist, eyeR, 0.35, skin.pupil, skin.edgeColor);
+    const mx = TILE*0.31;
+    ctx.beginPath();
+    ctx.moveTo(mx-9, -6);
+    ctx.quadraticCurveTo(mx+4, 6, mx+9, -3);
+    ctx.strokeStyle = skin.mouthColor || skin.pupil; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // 과일 섭취 이펙트 (파티클 버스트)
+  function drawEffects(now){
+    if(!effects.length) return;
+    effects = effects.filter(e => now - e.start < 500);
+    effects.forEach(e=>{
+      const t = (now - e.start)/500;
+      ctx.globalAlpha = Math.max(0, 1-t);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, TILE*0.2 + t*TILE*0.75, 0, Math.PI*2);
+      ctx.strokeStyle = e.color; ctx.lineWidth = 3; ctx.stroke();
+      for(let i=0;i<6;i++){
+        const ang = (i/6)*Math.PI*2 + t*1.2;
+        const dist = t*TILE*0.75;
+        const dx = e.x + Math.cos(ang)*dist, dy = e.y + Math.sin(ang)*dist;
+        ctx.beginPath(); ctx.arc(dx,dy, 3*(1-t), 0, Math.PI*2);
+        ctx.fillStyle = e.color; ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  // ============ 루프 (틱 기반) ============
+  function loop(ts){
+    if(gameState !== 'playing'){ return; }
+    if(!lastTick) lastTick = ts;
+    if(ts - lastTick >= tickMs){
+      lastTick = ts;
+      step();
+    }
+    loopHandle = requestAnimationFrame(loop);
+  }
+  function startLoop(){ lastTick = 0; loopHandle = requestAnimationFrame(loop); }
+  function stopLoop(){ if(loopHandle) cancelAnimationFrame(loopHandle); loopHandle = null; }
+
+  // 화면 렌더링은 틱과 별개로 매 프레임 갱신 (이펙트/펄스 애니메이션을 부드럽게)
+  let renderHandle = null;
+  function renderLoop(ts){
+    draw(ts);
+    renderHandle = requestAnimationFrame(renderLoop);
+  }
+  function startRender(){ if(!renderHandle) renderHandle = requestAnimationFrame(renderLoop); }
+  function stopRender(){ if(renderHandle) cancelAnimationFrame(renderHandle); renderHandle = null; }
+
+  // ============ 화면 전환 ============
+  function goPlay(){
+    resetGame();
+    gameState = 'ready'; // 화면을 눌러야 이동 시작
+    showScreen('screen-game');
+    closeOverlay('overlay-gameover');
+    closeOverlay('overlay-pause');
+    document.getElementById('btn-pause').innerHTML = '<span class="icon-pause"><i></i><i></i></span>';
+    startRender();
+    applyControlModeUI();
+  }
+  function goMenu(){
+    gameState = 'menu';
+    stopLoop();
+    stopRender();
+    closeOverlay('overlay-gameover');
+    closeOverlay('overlay-pause');
+    showScreen('screen-menu');
+    document.getElementById('hud-best').textContent = best;
+  }
+  function togglePause(){
+    if(gameState === 'playing'){
+      gameState = 'paused'; stopLoop(); openOverlay('overlay-pause');
+      document.getElementById('btn-pause').innerHTML = '<span class="icon-play"></span>';
+    } else if(gameState === 'paused'){
+      gameState = 'playing'; closeOverlay('overlay-pause'); lastTick = 0; startLoop();
+      document.getElementById('btn-pause').innerHTML = '<span class="icon-pause"><i></i><i></i></span>';
+    }
+  }
+
+  function applyControlModeUI(){
+    document.getElementById('touch-pad').classList.toggle('visible', controlMode === 'buttons');
+    document.querySelectorAll('#toggle-control button').forEach(b=>{
+      b.classList.toggle('active', b.dataset.val === controlMode);
+    });
+  }
+
+  function renderAchievements(){
+    const list = document.getElementById('ach-list');
+    list.innerHTML = '';
+    ACHIEVEMENTS.forEach(a=>{
+      const has = unlocked.has(a.id);
+      const div = document.createElement('div');
+      div.className = 'ach-item' + (has ? '' : ' locked');
+      div.innerHTML = `<div class="ach-ico">${a.ico}</div>
+        <div><div class="ach-name">${a.name}</div><div class="ach-desc">${has ? a.desc : '???'}</div></div>`;
+      list.appendChild(div);
+    });
+  }
+
+  function renderSkins(){
+    updateCoinUI();
+    const list = document.getElementById('skin-list');
+    list.innerHTML = '';
+    const sorted = SKINS.slice().sort((a,b)=> a.price - b.price);
+    sorted.forEach(sk=>{
+      const owned = ownedSkins.has(sk.id);
+      const equipped = currentSkin === sk.id;
+      const div = document.createElement('div');
+      div.className = 'skin-item' + (equipped ? ' equipped' : '');
+      let btnHtml;
+      if(equipped){
+        btnHtml = `<button class="skin-btn equipped" disabled>장착됨</button>`;
+      } else if(owned){
+        btnHtml = `<button class="skin-btn equip" data-equip="${sk.id}">장착</button>`;
+      } else {
+        const afford = coins >= sk.price;
+        btnHtml = `<button class="skin-btn buy" data-buy="${sk.id}" ${afford?'':'disabled'}>🪙 ${sk.price}</button>`;
+      }
+      div.innerHTML = `<canvas class="skin-swatch" width="96" height="48"></canvas>
+        <div class="skin-info">
+          <div class="skin-name">${sk.name}</div>
+          <div class="skin-price">${sk.price === 0 ? '기본 제공' : (owned ? '보유 중' : sk.price + ' 코인')}</div>
+        </div>
+        ${btnHtml}`;
+      list.appendChild(div);
+      drawSkinPreview(div.querySelector('canvas'), sk);
+    });
+  }
+  // 상점 미리보기 - 실제 인게임과 같은 스타일로 캡슐형 뱀을 그림
+  function drawSkinPreview(canvas, skin){
+    const pctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = 96, ch = 48;
+    canvas.width = cw*dpr; canvas.height = ch*dpr;
+    pctx.scale(dpr, dpr);
+    pctx.clearRect(0,0,cw,ch);
+    const r = 17, cy = ch/2, leftX = r+8, rightX = cw-r-14;
+    function capsulePath(offY){
+      pctx.beginPath();
+      pctx.moveTo(leftX, cy+offY-r);
+      pctx.lineTo(rightX, cy+offY-r);
+      pctx.arc(rightX, cy+offY, r, -Math.PI/2, Math.PI/2);
+      pctx.lineTo(leftX, cy+offY+r);
+      pctx.arc(leftX, cy+offY, r, Math.PI/2, Math.PI*1.5);
+      pctx.closePath();
+    }
+    if(skin.outline){
+      capsulePath(0);
+      pctx.lineWidth = 5; pctx.strokeStyle = skin.outline; pctx.globalAlpha = 0.6; pctx.stroke(); pctx.globalAlpha = 1;
+    }
+    if(skin.edgeColor){
+      capsulePath(0);
+      pctx.lineWidth = (skin.edgeWidth||5)*2; pctx.strokeStyle = skin.edgeColor; pctx.stroke();
+    }
+    capsulePath(2); pctx.fillStyle = skin.shadow; pctx.fill();
+    capsulePath(0); pctx.fillStyle = skin.body; pctx.fill();
+    if(skin.highlight){
+      pctx.save();
+      capsulePath(0); pctx.clip();
+      pctx.fillStyle = skin.highlight; pctx.globalAlpha = 0.85;
+      pctx.fillRect(leftX-r, cy-r, (rightX-leftX)+r*2, r*0.65);
+      pctx.restore();
+    }
+    if(skin.segmented){
+      pctx.save();
+      pctx.strokeStyle = skin.edgeColor || '#15181b';
+      pctx.lineWidth = 2.2;
+      const segN = 4;
+      for(let i=1;i<segN;i++){
+        const sx = leftX + (rightX-leftX)*(i/segN);
+        pctx.beginPath(); pctx.moveTo(sx, cy-r); pctx.lineTo(sx, cy+r); pctx.stroke();
+      }
+      pctx.restore();
+    }
+    if(skin.edgeColor){
+      pctx.beginPath(); pctx.arc(rightX, cy, r*1.08 + (skin.edgeWidth||5)*0.6, 0, Math.PI*2);
+      pctx.fillStyle = skin.edgeColor; pctx.fill();
+    }
+    pctx.beginPath(); pctx.arc(rightX, cy, r*1.08, 0, Math.PI*2); pctx.fillStyle = skin.head; pctx.fill();
+    if(skin.outline){
+      pctx.beginPath(); pctx.arc(rightX, cy, r*1.08+2, 0, Math.PI*2);
+      pctx.strokeStyle = skin.outline; pctx.lineWidth = 2; pctx.globalAlpha = 0.75; pctx.stroke(); pctx.globalAlpha = 1;
+    }
+    drawAngryEye(pctx, rightX+3, cy-7, 6.5, -0.35, skin.pupil, skin.edgeColor);
+    drawAngryEye(pctx, rightX+3, cy+7, 6.5, 0.35, skin.pupil, skin.edgeColor);
+    pctx.beginPath();
+    pctx.moveTo(rightX-6, cy+6);
+    pctx.quadraticCurveTo(rightX+4, cy+12, rightX+11, cy+5);
+    pctx.strokeStyle = skin.mouthColor || skin.pupil; pctx.lineWidth = 2.2; pctx.lineCap = 'round'; pctx.stroke();
+  }
+  function buySkin(id){
+    const sk = SKINS.find(s=>s.id===id);
+    if(!sk || ownedSkins.has(id) || coins < sk.price) return;
+    addCoins(-sk.price);
+    ownedSkins.add(id);
+    currentSkin = id;
+    saveSkins();
+    renderSkins();
+    toast(sk.name + ' 스킨을 구매했어요!');
+  }
+  function equipSkin(id){
+    if(!ownedSkins.has(id)) return;
+    currentSkin = id;
+    saveSkins();
+    renderSkins();
+  }
+
+  // ============ 이벤트 바인딩 ============
+  document.getElementById('btn-play').addEventListener('click', goPlay);
+  document.getElementById('btn-best').addEventListener('click', ()=> toast('🏆 최고 점수: ' + best));
+  document.getElementById('btn-ach').addEventListener('click', ()=>{ renderAchievements(); openOverlay('overlay-ach'); });
+  document.getElementById('btn-skins').addEventListener('click', ()=>{ renderSkins(); openOverlay('overlay-skins'); });
+  document.getElementById('skin-list').addEventListener('click', (e)=>{
+    const buyBtn = e.target.closest('[data-buy]');
+    const equipBtn = e.target.closest('[data-equip]');
+    if(buyBtn) buySkin(buyBtn.dataset.buy);
+    else if(equipBtn) equipSkin(equipBtn.dataset.equip);
+  });
+  document.getElementById('btn-settings').addEventListener('click', ()=> openOverlay('overlay-settings'));
+  document.getElementById('btn-pause').addEventListener('click', togglePause);
+  document.getElementById('btn-exit').addEventListener('click', ()=>{
+    if(gameState === 'playing') togglePause();
+    else goMenu();
+  });
+  document.getElementById('btn-mute').addEventListener('click', (e)=>{
+    if(volume > 0){ prevVolume = volume; volume = 0; e.currentTarget.textContent = '🔇'; }
+    else { volume = prevVolume || 60; e.currentTarget.textContent = '🔊'; }
+    document.getElementById('range-volume').value = volume;
+    saveSettings();
+  });
+  document.getElementById('btn-resume').addEventListener('click', togglePause);
+  document.getElementById('btn-pause-menu').addEventListener('click', goMenu);
+  document.getElementById('btn-retry').addEventListener('click', goPlay);
+  document.getElementById('btn-tomenu').addEventListener('click', goMenu);
+  document.getElementById('btn-share').addEventListener('click', async ()=>{
+    const text = `텃밭 스네이크에서 ${score}점을 획득했어요! 🐍🍓`;
+    try{
+      if(navigator.share){ await navigator.share({text}); }
+      else { await navigator.clipboard.writeText(text); toast('점수가 클립보드에 복사되었어요'); }
+    }catch(e){ toast('점수가 클립보드에 복사되었어요'); }
+  });
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.addEventListener('click', ()=> closeOverlay(b.dataset.close));
+  });
+  document.getElementById('toggle-control').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    controlMode = btn.dataset.val;
+    applyControlModeUI(); saveSettings();
+  });
+  document.getElementById('range-volume').addEventListener('input', (e)=>{
+    volume = parseInt(e.target.value); saveSettings();
+  });
+  document.querySelectorAll('.tp-btn').forEach(b=>{
+    b.addEventListener('click', ()=> queueDirection(b.dataset.dir));
+  });
+
+  // 키보드
+  window.addEventListener('keydown', (e)=>{
+    const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', w:'up', s:'down', a:'left', d:'right' };
+    if(map[e.key]){ e.preventDefault(); queueDirection(map[e.key]); }
+    if(e.key === ' ' && gameState !== 'menu' && gameState !== 'gameover'){ togglePause(); }
+  });
+
+  // 스와이프 / 탭하여 시작
+  let touchStart = null;
+  canvas.addEventListener('touchstart', (e)=>{ touchStart = e.changedTouches[0]; }, {passive:true});
+  canvas.addEventListener('touchend', (e)=>{
+    if(gameState === 'ready'){ beginPlaying(); touchStart = null; return; }
+    if(!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.clientX, dy = t.clientY - touchStart.clientY;
+    if(Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    if(Math.abs(dx) > Math.abs(dy)) queueDirection(dx > 0 ? 'right' : 'left');
+    else queueDirection(dy > 0 ? 'down' : 'up');
+    touchStart = null;
+  });
+  canvas.addEventListener('click', ()=>{ if(gameState === 'ready') beginPlaying(); });
+
+  // ============ 시작 ============
+  loadStorage().then(()=>{ draw(); });
+})();
+</script>
+</body>
+</html>
